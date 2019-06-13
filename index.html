@@ -1,0 +1,93 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta http-equiv="X-UA-Compatible" content="ie=edge">
+    <title>Document</title>
+</head>
+
+<body>
+    <h1>static s3 authentication with cognito federated to salesforce example</h1>
+
+    <form id="upload-form" enctype="multipart/form-data" method="post" action="#">
+        Data File to Upload
+        <input id="fileupload" name="myfile" type="file" />
+        <br />
+        <input type="submit" value="upload" id="submit" />
+    </form>
+
+    <br />
+    <br />
+    <input type="button" value="logout" id="logoutButton" onclick="logout()" />
+
+    <hr />
+
+    <h3>Log</h3>
+
+    <script>
+        (async () => {
+            const callbackURL = document.location.origin + (document.location.pathname === '/' ? '' : document.location.pathname)
+            const loginURL = `https://com-brianpfeil-test-01.auth.us-east-1.amazoncognito.com/login?response_type=token&client_id=5uol3m3jk3bqn39jrsjvhaooqp&redirect_uri=${encodeURIComponent(callbackURL)}`
+            const protectedApiEndpoint = 'https://v0vchrma8f.execute-api.us-east-1.amazonaws.com/dev/pirs';
+
+            const log = (s) => {
+                console.log(s)
+                const pre = document.createElement("pre")
+                pre.innerText = s
+                document.body.appendChild(pre);
+            }
+
+            const logout = () => {
+                log(`logout`)
+                localStorage.removeItem('id_token')
+                document.location.href = document.location.origin
+            }
+            window.logout = logout;
+
+            const callProtectedEndpoint = async (idToken) => {
+                log(`calling protected endpoint. ${protectedApiEndpoint}`)
+                const resp = await fetch(protectedApiEndpoint, {
+                    mode: 'cors',
+                    headers: {
+                        'Authorization': `${idToken}`
+                    }
+                })
+                const respJson = await resp.json();
+                return respJson;
+            }
+
+            const hash = document.location.hash;
+            const urlContainsIdToken = hash.indexOf('id_token') > -1;
+            if (urlContainsIdToken) {
+                const pairs = hash.substring(1).split("&")
+                for (const pair of pairs) {
+                    const keyValue = pair.split('=');
+                    const key = keyValue[0];
+                    const value = keyValue[1];
+                    if (key === 'id_token') {
+                        log(`storing token in local storage. token=${value}`)
+                        localStorage.setItem('id_token', value)
+                    }
+                }
+            }
+
+            const token = localStorage.getItem('id_token');
+
+            if (!token) { // not logged in
+                // redirect to login page
+                document.location.href = loginURL
+            } else {
+                const resp = await callProtectedEndpoint(token);
+                log(`protected endpoint response\n\n ${JSON.stringify(resp, null, 2)}`);
+            }
+            const pre = document.createElement("pre")
+            pre.innerText = document.location.hash.substring(1).split("&").join("\n")
+            document.body.appendChild(pre);
+
+        })()
+    </script>
+</body>
+
+</html>
