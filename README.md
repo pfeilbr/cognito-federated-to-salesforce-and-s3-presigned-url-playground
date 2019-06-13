@@ -2,7 +2,8 @@
 
 ## Login with Cognito Federated to Salesforce Example
 
-see [`index.html`](index.html)
+* see [`index.html`](index.html)
+* see `~/Dropbox/notes/static-s3-cognito-authentication.md` on local machine also for greater detail on setup
 
 ```sh
 # local dev
